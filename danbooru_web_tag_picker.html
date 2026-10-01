@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Danbooru Web Tag Picker</title>
+<style>
+:root{
+  --bg:#090d13;--panel:#111821;--panel2:#0d131b;--line:#263243;--text:#e7edf5;--muted:#8e9bad;
+  --blue:#58a6ff;--blue2:#1f6feb;--green:#3fb950;--red:#ff7b72;--yellow:#e3b341;--purple:#bc8cff;
+  --pink:#f778ba;--cyan:#39c5cf;--orange:#f0883e;--chip:#1b2634;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:
+ radial-gradient(circle at 15% 0,rgba(88,166,255,.12),transparent 30rem),
+ radial-gradient(circle at 85% 20%,rgba(188,140,255,.08),transparent 25rem),
+ var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app{width:min(1240px,calc(100% - 24px));margin:24px auto 48px}
+.top{display:flex;gap:16px;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+h1{font-size:25px;margin:0 0 4px}.sub{margin:0;color:var(--muted)}
+.badges{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.badge{border:1px solid var(--line);background:#111a25;color:#b9c4d1;border-radius:999px;padding:6px 9px;font-size:12px}
+.grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.75fr);gap:14px}
+.card{background:rgba(17,24,33,.96);border:1px solid var(--line);border-radius:15px;box-shadow:0 14px 40px rgba(0,0,0,.22);overflow:hidden}
+.card-h{padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel2);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.card-b{padding:14px}
+.search-wrap{position:relative;flex:1;min-width:220px}
+.search{width:100%;border:1px solid var(--line);background:#090f16;color:var(--text);border-radius:10px;padding:10px 12px;outline:none}
+.search:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(88,166,255,.10)}
+.btn,.select{border:1px solid var(--line);background:#182231;color:var(--text);border-radius:9px;padding:8px 10px}
+.btn:hover,.select:hover{border-color:#43536a;background:#1d2a39}
+.btn.primary{background:var(--blue2);border-color:var(--blue2)}
+.btn.red:hover{color:#ffaaa4;border-color:#683333}
+.btn.star{font-size:18px;padding:5px 9px}
+.mode{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.mode button{border:0;border-right:1px solid var(--line);background:#131c27;color:var(--muted);padding:8px 10px}
+.mode button:last-child{border-right:0}.mode button.on{background:#20324a;color:white}
+.suggestions{position:absolute;z-index:30;left:0;right:0;top:44px;display:none;max-height:360px;overflow:auto;border:1px solid var(--line);background:#0c121a;border-radius:10px;box-shadow:0 18px 40px rgba(0,0,0,.48)}
+.suggestions.open{display:block}
+.srow{width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:9px;align-items:center;border:0;border-bottom:1px solid #1c2633;background:transparent;color:var(--text);padding:9px 10px;text-align:left}
+.srow:hover,.srow.active{background:#172230}.srow:last-child{border-bottom:0}
+.sname{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.smeta{font-size:11px;color:var(--muted)}.sdot{width:8px;height:8px;border-radius:50%;background:var(--blue)}
+.empty{padding:15px;color:var(--muted);text-align:center}
+.notice{margin:0 0 12px;padding:10px 11px;border:1px solid #33425a;background:#101a27;border-radius:10px;color:#b9c5d4;font-size:12px}
+.notice strong{color:#e7edf5}
+.section{margin-top:17px}.section:first-child{margin-top:0}
+.stitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.stitle h2{font-size:13px;margin:0;color:#cbd5e1;text-transform:uppercase;letter-spacing:.06em}
+.stitle small{color:var(--muted)}
+.bucket-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.bucket{border:1px solid var(--line);background:#0c1219;border-radius:11px;min-height:92px;padding:9px}
+.bucket-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:7px;color:#bdc8d6;font-size:12px}
+.bucket-tags{display:flex;flex-wrap:wrap;gap:6px}
+.placeholder{color:#667386;font-size:12px;padding:5px 2px}
+.chip{display:inline-flex;align-items:center;gap:5px;background:var(--chip);border:1px solid #314158;border-radius:8px;padding:5px 7px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;max-width:100%}
+.chip.neg{border-color:#653438;background:#24171c}.chip.fav{box-shadow:inset 0 0 0 1px rgba(227,179,65,.25)}
+.chip .txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip button{border:0;background:transparent;color:#8190a2;padding:0;line-height:1}.chip button:hover{color:white}
+.chip .mini-star{color:#a58b45}.chip .mini-star.on{color:#ffd866}
+.favs{display:flex;flex-wrap:wrap;gap:7px;min-height:34px}
+.favbtn{border:1px solid #4a4024;background:#201c12;color:#f0d071;border-radius:8px;padding:6px 8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.favbtn:hover{background:#2b2517}
+.preview-head{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:9px}
+.preview-title{font-weight:650}.preview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.preview-grid a{display:block;aspect-ratio:1;border-radius:8px;overflow:hidden;background:#0b1016;border:1px solid var(--line)}
+.preview-grid img{width:100%;height:100%;object-fit:cover;display:block}
+.preview-empty{min-height:144px;display:grid;place-items:center;text-align:center;color:var(--muted);border:1px dashed #314057;border-radius:10px;padding:14px}
+.outputs{display:grid;gap:9px}
+.outrow label{display:flex;justify-content:space-between;color:#bcc7d4;font-size:12px;margin-bottom:5px}
+textarea{width:100%;min-height:78px;resize:vertical;border:1px solid var(--line);border-radius:9px;background:#090f16;color:#dce6f0;padding:10px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;outline:none}
+.row{display:flex;gap:8px;flex-wrap:wrap}.spacer{flex:1}
+.status{color:var(--muted);font-size:12px;min-width:92px;text-align:right}
+.footer{margin-top:12px;color:#758397;font-size:12px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.toast{position:fixed;z-index:100;left:50%;bottom:22px;transform:translate(-50%,14px);opacity:0;background:#202b38;border:1px solid #425268;color:white;padding:9px 13px;border-radius:9px;box-shadow:0 12px 30px rgba(0,0,0,.35);transition:.18s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:880px){.grid{grid-template-columns:1fr}.preview-grid{grid-template-columns:repeat(5,1fr)}}
+@media(max-width:600px){.app{width:calc(100% - 12px);margin:10px auto 30px}.top{display:block}.badges{justify-content:flex-start;margin-top:10px}.bucket-grid{grid-template-columns:1fr}.preview-grid{grid-template-columns:repeat(3,1fr)}.status{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div>
+      <h1>Danbooru Web Tag Picker</h1>
+      <p class="sub">Tagy skladáš do sekcií, favorites a negative promptu. Vyhľadávanie nepoužíva Danbooru JSON API.</p>
+    </div>
+    <div class="badges">
+      <span class="badge">Web page search</span>
+      <span class="badge">LocalStorage</span>
+      <span class="badge">SD / ComfyUI export</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <div class="card-h">
+        <div class="search-wrap">
+          <input id="q" class="search" autocomplete="off" spellcheck="false" placeholder="Hľadaj tag: blue_hair, school_uniform, sitting…">
+          <div id="suggestions" class="suggestions"></div>
+        </div>
+        <select id="bucketSelect" class="select" title="Kam sa nový tag pridá">
+          <option value="auto">Auto sekcia</option>
+          <option value="character">Character</option>
+          <option value="hair">Hair</option>
+          <option value="eyes">Eyes</option>
+          <option value="clothes">Clothes</option>
+          <option value="pose">Pose</option>
+          <option value="background">Background</option>
+          <option value="other">Other</option>
+        </select>
+        <div class="mode">
+          <button id="positiveMode" class="on" type="button">Positive</button>
+          <button id="negativeMode" type="button">Negative</button>
+        </div>
+        <button id="webBtn" class="btn" type="button">Hľadať na webe ↗</button>
+        <span id="status" class="status">Pripravené</span>
+      </div>
+      <div class="card-b">
+        <p class="notice"><strong>Ako to hľadá:</strong> načíta normálnu Danbooru stránku s tagmi cez webový text-reader a z nej vytiahne odkazy na tagy. Ak web načítanie zlyhá, použije zabudovaný fallback a Enter stále pridá vlastný tag.</p>
+
+        <div class="section">
+          <div class="stitle"><h2>Favorites</h2><small>Kliknutím pridáš</small></div>
+          <div id="favorites" class="favs"></div>
+        </div>
+
+        <div class="section">
+          <div class="stitle"><h2>Positive prompt</h2><small id="posCount">0 tagov</small></div>
+          <div id="buckets" class="bucket-grid"></div>
+        </div>
+
+        <div class="section">
+          <div class="stitle"><h2>Negative prompt</h2><small id="negCount">0 tagov</small></div>
+          <div id="negative" class="bucket"></div>
+        </div>
+
+        <div class="section">
+          <div class="stitle"><h2>Export</h2><small>Stable Diffusion / ComfyUI</small></div>
+          <div class="outputs">
+            <div class="outrow">
+              <label><span>Positive</span><button class="btn" id="copyPositive" type="button">Kopírovať</button></label>
+              <textarea id="positiveOut"></textarea>
+            </div>
+            <div class="outrow">
+              <label><span>Negative</span><button class="btn" id="copyNegative" type="button">Kopírovať</button></label>
+              <textarea id="negativeOut"></textarea>
+            </div>
+            <div class="row">
+              <select id="format" class="select">
+                <option value="sd">SD / ComfyUI (medzery)</option>
+                <option value="danbooru">Danbooru (underscore)</option>
+                <option value="json">JSON</option>
+              </select>
+              <button id="copyAll" class="btn primary" type="button">Kopírovať export</button>
+              <button id="exportJson" class="btn" type="button">Stiahnuť JSON</button>
+              <button id="clear" class="btn red" type="button">Vymazať všetko</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <span>↑ ↓ vyberá · Enter pridá · Esc zavrie</span>
+          <span>Favorites a posledný picker sa ukladajú v prehliadači.</span>
+        </div>
+      </div>
+    </section>
+
+    <aside class="card">
+      <div class="card-h">
+        <strong>Náhľad</strong>
+        <span class="spacer"></span>
+        <button id="openTag" class="btn" type="button" disabled>Otvoriť Danbooru ↗</button>
+      </div>
+      <div class="card-b">
+        <div class="preview-head">
+          <div>
+            <div id="previewTitle" class="preview-title">Žiadny tag</div>
+            <div id="previewMeta" class="smeta">Klikni na tag alebo výsledok.</div>
+          </div>
+        </div>
+        <div id="preview" class="preview-empty">Náhľady sa načítajú z bežnej webovej stránky Danbooru. Pre istotu sa používajú iba výsledky s <code>rating:g</code>.</div>
+      </div>
+    </aside>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+(() => {
+  // Nepoužíva Danbooru /tags.json ani /posts.json.
+  // Bežnú HTML stránku číta cez Jina Reader, aby lokálny file:// dokument neblokoval CORS.
+  const DANBOORU = "https://danbooru.donmai.us";
+  const READER = "https://r.jina.ai/";
+  const BUCKETS = [
+    ["character","Character"],["hair","Hair"],["eyes","Eyes"],["clothes","Clothes"],
+    ["pose","Pose"],["background","Background"],["other","Other"]
+  ];
+
+  const FALLBACK = [
+    "1girl","1boy","solo","multiple_girls","multiple_boys","original","looking_at_viewer",
+    "smile","open_mouth","closed_mouth","blush","upper_body","full_body","cowboy_shot",
+    "portrait","from_side","from_behind","from_above","from_below","sitting","standing",
+    "lying","kneeling","walking","running","arms_crossed","hand_on_hip","hands_up",
+    "blue_hair","black_hair","brown_hair","blonde_hair","red_hair","pink_hair","purple_hair",
+    "green_hair","white_hair","silver_hair","short_hair","long_hair","medium_hair","very_long_hair",
+    "ponytail","twintails","braid","bangs","hair_between_eyes","messy_hair","straight_hair",
+    "blue_eyes","red_eyes","green_eyes","brown_eyes","purple_eyes","yellow_eyes","grey_eyes",
+    "closed_eyes","one_eye_closed","heterochromia","glasses","sunglasses",
+    "shirt","t-shirt","dress","skirt","pleated_skirt","shorts","pants","jeans","jacket","coat",
+    "hoodie","sweater","school_uniform","serafuku","suit","necktie","bowtie","hat","cap","gloves",
+    "boots","shoes","sneakers","thighhighs","socks","scarf","bag","backpack",
+    "indoors","outdoors","bedroom","classroom","street","city","forest","beach","mountain",
+    "night","sunset","day","sky","clouds","starry_sky","window","room","simple_background",
+    "white_background","black_background","gradient_background","depth_of_field","bokeh",
+    "masterpiece","best_quality","highres","absurdres","detailed_background"
+  ];
+
+  const $ = s => document.querySelector(s);
+  const q = $("#q"), suggestionsEl = $("#suggestions"), statusEl = $("#status");
+  const favoritesEl = $("#favorites"), bucketsEl = $("#buckets"), negativeEl = $("#negative");
+  const positiveOut = $("#positiveOut"), negativeOut = $("#negativeOut");
+  const posCount = $("#posCount"), negCount = $("#negCount"), format = $("#format");
+  const positiveMode = $("#positiveMode"), negativeMode = $("#negativeMode");
+  const bucketSelect = $("#bucketSelect");
+  const preview = $("#preview"), previewTitle = $("#previewTitle"), previewMeta = $("#previewMeta"), openTag = $("#openTag");
+
+  let state = loadState();
+  let favorites = loadFavorites();
+  let mode = "positive";
+  let suggestions = [];
+  let active = -1;
+  let timer = null;
+  let aborter = null;
+  let currentPreviewTag = "";
+
+  function freshState(){
+    return {positive:Object.fromEntries(BUCKETS.map(([k])=>[k,[]])), negative:[]};
+  }
+  function loadState(){
+    try{
+      const x = JSON.parse(localStorage.getItem("danbooru-web-picker-state"));
+      if(!x || !x.positive || !Array.isArray(x.negative)) return freshState();
+      const base = freshState();
+      for(const [k] of BUCKETS) base.positive[k] = Array.isArray(x.positive[k]) ? x.positive[k] : [];
+      base.negative = x.negative;
+      return base;
+    }catch{return freshState()}
+  }
+  function loadFavorites(){
+    try{
+      const x = JSON.parse(localStorage.getItem("danbooru-web-picker-favorites"));
+      return Array.isArray(x) ? x : ["1girl","solo","looking_at_viewer","smile"];
+    }catch{return ["1girl","solo","looking_at_viewer","smile"]}
+  }
+  function save(){
+    localStorage.setItem("danbooru-web-picker-state", JSON.stringify(state));
+    localStorage.setItem("danbooru-web-picker-favorites", JSON.stringify(favorites));
+  }
+  function norm(s){
+    return String(s||"").trim().toLowerCase().replace(/\s+/g,"_").replace(/^[-,]+|[-,]+$/g,"");
+  }
+  function pretty(s){return s.replaceAll("_"," ")}
+  function toast(t){
+    const e=$("#toast"); e.textContent=t; e.classList.add("show");
+    clearTimeout(toast.t); toast.t=setTimeout(()=>e.classList.remove("show"),1400);
+  }
+  function uniq(arr){return [...new Set(arr)]}
+  function allPositive(){return BUCKETS.flatMap(([k])=>state.positive[k])}
+  function isFavorite(tag){return favorites.includes(tag)}
+  function toggleFavorite(tag){
+    tag=norm(tag); if(!tag)return;
+    favorites = isFavorite(tag) ? favorites.filter(x=>x!==tag) : uniq([...favorites,tag]);
+    save(); render();
+  }
+
+  function guessBucket(tag){
+    const t=tag.toLowerCase();
+    if(/(^|_)(hair|bangs|ponytail|twintails|braid|ahoge|drill_hair|bob_cut|hair_bun|hair_ornament)(_|$)/.test(t) || /_hair$/.test(t)) return "hair";
+    if(/_eyes?$/.test(t) || /^(closed_eyes|one_eye_closed|heterochromia)$/.test(t)) return "eyes";
+    if(/(shirt|dress|skirt|shorts|pants|jeans|jacket|coat|hoodie|sweater|uniform|serafuku|suit|tie|hat|cap|gloves|boots|shoes|sneakers|socks|thighhighs|scarf|bag|backpack)/.test(t)) return "clothes";
+    if(/(sitting|standing|lying|kneeling|walking|running|pose|arms_|hand_|hands_|from_above|from_below|from_side|from_behind|looking_)/.test(t)) return "pose";
+    if(/(background|indoors|outdoors|room|bedroom|classroom|street|city|forest|beach|mountain|night|sunset|sky|cloud|window|bokeh|depth_of_field)/.test(t)) return "background";
+    if(/[()][^)]/.test(t) || /\([^)]*\)$/.test(t) || /^(1girl|1boy|solo|multiple_girls|multiple_boys)$/.test(t)) return "character";
+    return "other";
+  }
+
+  function addTag(raw, forcedMode=mode){
+    const tag=norm(raw); if(!tag)return;
+    if(forcedMode==="negative"){
+      state.negative = uniq([...state.negative,tag]);
+    }else{
+      const selected=bucketSelect.value;
+      const bucket = selected==="auto" ? guessBucket(tag) : selected;
+      if(!allPositive().includes(tag)) state.positive[bucket].push(tag);
+    }
+    save(); render(); closeSuggestions(); q.value=""; q.focus(); setPreview(tag);
+  }
+  function removeTag(tag, bucket, neg=false){
+    if(neg) state.negative=state.negative.filter(x=>x!==tag);
+    else state.positive[bucket]=state.positive[bucket].filter(x=>x!==tag);
+    save(); render();
+  }
+
+  function chip(tag,bucket,neg=false){
+    const c=document.createElement("span");
+    c.className="chip"+(neg?" neg":"")+(isFavorite(tag)?" fav":"");
+    const star=document.createElement("button"); star.className="mini-star"+(isFavorite(tag)?" on":""); star.textContent="★"; star.title="Favorite";
+    star.onclick=e=>{e.stopPropagation();toggleFavorite(tag)};
+    const txt=document.createElement("span");txt.className="txt";txt.textContent=pretty(tag);txt.title=tag;
+    const x=document.createElement("button");x.textContent="×";x.title="Odstrániť";
+    x.onclick=e=>{e.stopPropagation();removeTag(tag,bucket,neg)};
+    c.onclick=()=>setPreview(tag);
+    c.append(star,txt,x); return c;
+  }
+
+  function render(){
+    bucketsEl.innerHTML="";
+    for(const [key,label] of BUCKETS){
+      const b=document.createElement("div"); b.className="bucket";
+      const h=document.createElement("div");h.className="bucket-head";h.innerHTML=`<span>${label}</span><span>${state.positive[key].length}</span>`;
+      const tags=document.createElement("div");tags.className="bucket-tags";
+      if(!state.positive[key].length) tags.innerHTML=`<span class="placeholder">Prázdne</span>`;
+      else state.positive[key].forEach(t=>tags.appendChild(chip(t,key,false)));
+      b.append(h,tags);bucketsEl.appendChild(b);
+    }
+
+    negativeEl.innerHTML="";
+    const negTags=document.createElement("div");negTags.className="bucket-tags";
+    if(!state.negative.length) negTags.innerHTML=`<span class="placeholder">Prázdne</span>`;
+    else state.negative.forEach(t=>negTags.appendChild(chip(t,"negative",true)));
+    negativeEl.appendChild(negTags);
+
+    favoritesEl.innerHTML="";
+    if(!favorites.length) favoritesEl.innerHTML=`<span class="placeholder">Pridaj favorite hviezdičkou pri tagu.</span>`;
+    favorites.forEach(t=>{
+      const b=document.createElement("button");b.className="favbtn";b.textContent="★ "+pretty(t);
+      b.onclick=()=>addTag(t);favoritesEl.appendChild(b);
+    });
+
+    const pos=allPositive(), neg=state.negative;
+    posCount.textContent=`${pos.length} tagov`; negCount.textContent=`${neg.length} tagov`;
+    updateOutputs();
+  }
+
+  function updateOutputs(){
+    const pos=allPositive(), neg=state.negative, f=format.value;
+    if(f==="danbooru"){
+      positiveOut.value=pos.join(", ");
+      negativeOut.value=neg.join(", ");
+    }else if(f==="json"){
+      const data=JSON.stringify({positive:pos,negative:neg},null,2);
+      positiveOut.value=data; negativeOut.value="";
+    }else{
+      positiveOut.value=pos.map(pretty).join(", ");
+      negativeOut.value=neg.map(pretty).join(", ");
+    }
+  }
+
+  function closeSuggestions(){suggestionsEl.classList.remove("open");suggestions=[];active=-1}
+  function renderSuggestions(){
+    suggestionsEl.innerHTML="";
+    if(!suggestions.length){
+      suggestionsEl.innerHTML=`<div class="empty">Nič sa nenašlo. Enter pridá napísaný tag.</div>`;
+      suggestionsEl.classList.add("open");return;
+    }
+    suggestions.forEach((tag,i)=>{
+      const b=document.createElement("button");b.className="srow"+(i===active?" active":"");
+      const d=document.createElement("i");d.className="sdot";
+      const n=document.createElement("span");n.className="sname";n.textContent=tag;
+      const m=document.createElement("span");m.className="smeta";m.textContent=isFavorite(tag)?"★ favorite":"web";
+      b.append(d,n,m);
+      b.onmousedown=e=>e.preventDefault();
+      b.onclick=()=>addTag(tag);
+      b.onmouseenter=()=>setPreview(tag,false);
+      suggestionsEl.appendChild(b);
+    });
+    suggestionsEl.classList.add("open");
+  }
+
+  function parseTagLinks(text, query){
+    const out=[];
+    const rx=/\[[^\]]+\]\((?:https?:\/\/danbooru\.donmai\.us)?\/posts\?tags=([^)&\s]+)[^)]*\)/gi;
+    let m;
+    while((m=rx.exec(text))){
+      try{
+        let t=decodeURIComponent(m[1]).replace(/\+/g," ");
+        t=norm(t.split(/\s+/)[0]);
+        if(t && !t.includes(":") && t.length<120) out.push(t);
+      }catch{}
+    }
+    // Some reader outputs expose tag links as /tags/NAME.
+    const rx2=/\[[^\]]+\]\((?:https?:\/\/danbooru\.donmai\.us)?\/tags\/([^)?#\s]+)[^)]*\)/gi;
+    while((m=rx2.exec(text))){
+      try{const t=norm(decodeURIComponent(m[1])); if(t && t.length<120)out.push(t)}catch{}
+    }
+    const qq=norm(query);
+    return uniq(out).filter(t=>t.includes(qq)).slice(0,30);
+  }
+
+  async function searchWeb(query){
+    const qq=norm(query);
+    if(!qq){statusEl.textContent="Pripravené";closeSuggestions();return}
+    if(aborter)aborter.abort(); aborter=new AbortController();
+    statusEl.textContent="Web…";
+    const target = `${DANBOORU}/tags?search%5Bname_matches%5D=${encodeURIComponent(qq+"*")}&search%5Border%5D=count`;
+    try{
+      const r=await fetch(READER+target,{signal:aborter.signal,headers:{"Accept":"text/plain"}});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      const text=await r.text();
+      suggestions=parseTagLinks(text,qq);
+      if(!suggestions.length) throw new Error("No parsed tags");
+      active=0;statusEl.textContent=`${suggestions.length} web`;renderSuggestions();
+    }catch(e){
+      if(e.name==="AbortError")return;
+      suggestions=FALLBACK.filter(t=>t.includes(qq)).slice(0,30);
+      active=suggestions.length?0:-1;
+      statusEl.textContent=suggestions.length?`${suggestions.length} fallback`:"Bez výsledku";
+      renderSuggestions();
+    }
+  }
+
+  function searchExternal(){
+    const qq=q.value.trim() || currentPreviewTag;
+    const query=`site:danbooru.donmai.us ${qq} danbooru tag`;
+    window.open("https://www.google.com/search?q="+encodeURIComponent(query),"_blank","noopener");
+  }
+
+  function parseImageUrls(text){
+    const hits=[];
+    const rx=/https?:\/\/[^\s)"'<>\]]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s)"'<>\]]*)?/gi;
+    let m; while((m=rx.exec(text))){
+      const u=m[0].replace(/&amp;/g,"&");
+      if(/donmai|danbooru|safebooru|cdn/i.test(u)) hits.push(u);
+    }
+    return uniq(hits).slice(0,9);
+  }
+
+  async function setPreview(tag, fetchImages=true){
+    tag=norm(tag); if(!tag)return;
+    currentPreviewTag=tag;
+    previewTitle.textContent=pretty(tag);
+    previewMeta.textContent=tag;
+    openTag.disabled=false;
+    openTag.onclick=()=>window.open(`${DANBOORU}/posts?tags=${encodeURIComponent(tag+" rating:g")}`,"_blank","noopener");
+    if(!fetchImages)return;
+    preview.className="preview-empty";preview.innerHTML="Načítavam bezpečný náhľad z webovej stránky…";
+    const target=`${DANBOORU}/posts?tags=${encodeURIComponent(tag+" rating:g")}`;
+    try{
+      const r=await fetch(READER+target,{headers:{"Accept":"text/plain"}});
+      if(!r.ok)throw new Error();
+      const text=await r.text();
+      const imgs=parseImageUrls(text);
+      if(!imgs.length)throw new Error();
+      preview.className="preview-grid";preview.innerHTML="";
+      imgs.forEach(src=>{
+        const a=document.createElement("a");a.href=target;a.target="_blank";a.rel="noopener";
+        const im=document.createElement("img");im.loading="lazy";im.referrerPolicy="no-referrer";im.alt=tag;im.src=src;
+        im.onerror=()=>a.remove();
+        a.appendChild(im);preview.appendChild(a);
+      });
+    }catch{
+      preview.className="preview-empty";
+      preview.innerHTML=`Webový reader neposlal použiteľné thumbnails.<br><br><button id="previewOpenFallback" class="btn">Otvoriť výsledky na Danbooru ↗</button>`;
+      $("#previewOpenFallback").onclick=()=>openTag.click();
+    }
+  }
+
+  async function copy(text){
+    if(!text.trim()){toast("Nie je čo kopírovať");return}
+    try{await navigator.clipboard.writeText(text)}catch{
+      const ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();
+    }
+    toast("Skopírované");
+  }
+
+  q.addEventListener("input",()=>{clearTimeout(timer);timer=setTimeout(()=>searchWeb(q.value),280)});
+  q.addEventListener("keydown",e=>{
+    if(e.key==="ArrowDown"){e.preventDefault();if(suggestions.length){active=Math.min(active+1,suggestions.length-1);renderSuggestions();suggestionsEl.children[active]?.scrollIntoView({block:"nearest"})}}
+    else if(e.key==="ArrowUp"){e.preventDefault();if(suggestions.length){active=Math.max(active-1,0);renderSuggestions();suggestionsEl.children[active]?.scrollIntoView({block:"nearest"})}}
+    else if(e.key==="Enter"){e.preventDefault();if(suggestions[active])addTag(suggestions[active]);else if(q.value.trim())addTag(q.value)}
+    else if(e.key==="Escape")closeSuggestions();
+  });
+  document.addEventListener("click",e=>{if(!e.target.closest(".search-wrap"))closeSuggestions()});
+  $("#webBtn").onclick=searchExternal;
+  positiveMode.onclick=()=>{mode="positive";positiveMode.classList.add("on");negativeMode.classList.remove("on")};
+  negativeMode.onclick=()=>{mode="negative";negativeMode.classList.add("on");positiveMode.classList.remove("on")};
+  format.onchange=updateOutputs;
+  $("#copyPositive").onclick=()=>copy(positiveOut.value);
+  $("#copyNegative").onclick=()=>copy(negativeOut.value);
+  $("#copyAll").onclick=()=>{
+    const f=format.value;
+    if(f==="json") copy(positiveOut.value);
+    else copy(`Positive:\n${positiveOut.value}\n\nNegative:\n${negativeOut.value}`);
+  };
+  $("#exportJson").onclick=()=>{
+    const blob=new Blob([JSON.stringify({positive:allPositive(),negative:state.negative,favorites},null,2)],{type:"application/json"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="danbooru-tags.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  };
+  $("#clear").onclick=()=>{
+    if(!confirm("Vymazať všetky positive a negative tagy?"))return;
+    state=freshState();save();render();toast("Vymazané");
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>
